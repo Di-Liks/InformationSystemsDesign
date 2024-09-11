@@ -83,27 +83,41 @@ class Client:
     def get_phone(self):
         return self.__phone
 
-    # Метод для отображения информации о клиенте
-    def display_info(self):
+    # Полная версия объекта (с выводом всех полей)
+    def __str__(self):
         return (f"Client: {self.__last_name} {self.__first_name} {self.__middle_name}\n"
                 f"Address: {self.__address}\n"
                 f"Phone: {self.__phone}")
+
+    # Краткая версия объекта (вывод только имени и телефона)
+    def get_short_info(self):
+        return f"Client: {self.__last_name} {self.__first_name} - Phone: {self.__phone}"
+
+    # Сравнение объектов на равенство
+    def __eq__(self, other):
+        if isinstance(other, Client):
+            return (self.__last_name == other.__last_name and
+                    self.__first_name == other.__first_name and
+                    self.__middle_name == other.__middle_name and
+                    self.__address == other.__address and
+                    self.__phone == other.__phone)
+        return False
 
 # Пример использования
 try:
     # Использование стандартного конструктора
     client1 = Client("Ivanov", "Ivan", "Ivanovich", "123 Main St", "+1234567890")
-    print(client1.display_info())
+    print("Полная версия объекта:")
+    print(client1)  # Выведет полную информацию о клиенте
+    print("Краткая версия объекта:")
+    print(client1.get_short_info())  # Выведет краткую информацию (имя и телефон)
 
     # Использование конструктора с JSON-строкой
     json_data = '{"last_name": "Petrov", "first_name": "Petr", "middle_name": "Petrovich", "address": "456 Main St", "phone": "+0987654321"}'
     client2 = Client(data=json_data)
-    print(client2.display_info())
-
-    # Использование конструктора со строкой
-    string_data = "Sidorov Sidor Sidorovich 789 Main St +11234567890"
-    client3 = Client(data=string_data)
-    print(client3.display_info())
+    
+    print("Сравнение объектов:")
+    print(client1 == client2)  # Сравнит два объекта и вернет False
 
 except ValueError as e:
     print(e)
