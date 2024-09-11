@@ -1,42 +1,51 @@
+import json
+
 class Client:
-    def __init__(self, last_name, first_name, middle_name, address, phone):
-        self.__last_name = self.validate_field(last_name, "Last name", is_alpha=True, max_length=50)
-        self.__first_name = self.validate_field(first_name, "First name", is_alpha=True, max_length=50)
-        self.__middle_name = self.validate_field(middle_name, "Middle name", is_alpha=True, max_length=50)
-        self.__address = self.validate_field(address, "Address", max_length=100)
-        self.__phone = self.validate_field(phone, "Phone number", is_phone=True, exact_length=12)
+    def __init__(self, last_name=None, first_name=None, middle_name=None, address=None, phone=None, data=None):
+        if data:
+            # Если передан data, проверим его тип (например, строка или JSON)
+            if isinstance(data, str):
+                # Попробуем распарсить как JSON
+                try:
+                    parsed_data = json.loads(data)
+                    self.__init_from_dict(parsed_data)
+                except json.JSONDecodeError:
+                    # Если это не JSON, предположим, что это строка формата "Фамилия Имя Отчество Адрес Телефон"
+                    self.__init_from_string(data)
+            elif isinstance(data, dict):
+                # Если это словарь, инициализируем из словаря
+                self.__init_from_dict(data)
+            else:
+                raise ValueError("Invalid data format. Expected JSON string, plain string, or dictionary.")
+        else:
+            # Стандартный конструктор с отдельными аргументами
+            self.__last_name = self.validate_field(last_name, "Last name", is_alpha=True, max_length=50)
+            self.__first_name = self.validate_field(first_name, "First name", is_alpha=True, max_length=50)
+            self.__middle_name = self.validate_field(middle_name, "Middle name", is_alpha=True, max_length=50)
+            self.__address = self.validate_field(address, "Address", max_length=100)
+            self.__phone = self.validate_field(phone, "Phone number", is_phone=True, exact_length=12)
 
-    # Геттеры
-    def get_last_name(self):
-        return self.__last_name
+    # Дополнительные конструкторы (вспомогательные методы)
+    def __init_from_string(self, data_str):
+        parts = data_str.split()
+        if len(parts) != 5:
+            raise ValueError("Invalid string format. Expected: 'LastName FirstName MiddleName Address Phone'")
+        
+        self.__last_name = self.validate_field(parts[0], "Last name", is_alpha=True, max_length=50)
+        self.__first_name = self.validate_field(parts[1], "First name", is_alpha=True, max_length=50)
+        self.__middle_name = self.validate_field(parts[2], "Middle name", is_alpha=True, max_length=50)
+        self.__address = self.validate_field(parts[3], "Address", max_length=100)
+        self.__phone = self.validate_field(parts[4], "Phone number", is_phone=True, exact_length=12)
 
-    def get_first_name(self):
-        return self.__first_name
-
-    def get_middle_name(self):
-        return self.__middle_name
-
-    def get_address(self):
-        return self.__address
-
-    def get_phone(self):
-        return self.__phone
-
-    # Сеттеры с валидацией
-    def set_last_name(self, last_name):
-        self.__last_name = self.validate_field(last_name, "Last name", is_alpha=True, max_length=50)
-
-    def set_first_name(self, first_name):
-        self.__first_name = self.validate_field(first_name, "First name", is_alpha=True, max_length=50)
-
-    def set_middle_name(self, middle_name):
-        self.__middle_name = self.validate_field(middle_name, "Middle name", is_alpha=True, max_length=50)
-
-    def set_address(self, address):
-        self.__address = self.validate_field(address, "Address", max_length=100)
-
-    def set_phone(self, phone):
-        self.__phone = self.validate_field(phone, "Phone number", is_phone=True, exact_length=12)
+    def __init_from_dict(self, data_dict):
+        try:
+            self.__last_name = self.validate_field(data_dict['last_name'], "Last name", is_alpha=True, max_length=50)
+            self.__first_name = self.validate_field(data_dict['first_name'], "First name", is_alpha=True, max_length=50)
+            self.__middle_name = self.validate_field(data_dict['middle_name'], "Middle name", is_alpha=True, max_length=50)
+            self.__address = self.validate_field(data_dict['address'], "Address", max_length=100)
+            self.__phone = self.validate_field(data_dict['phone'], "Phone number", is_phone=True, exact_length=12)
+        except KeyError as e:
+            raise ValueError(f"Missing key in JSON or dict: {e}")
 
     # Универсальный метод для валидации полей
     @staticmethod
@@ -58,6 +67,22 @@ class Client:
 
         return value
 
+    # Геттеры
+    def get_last_name(self):
+        return self.__last_name
+
+    def get_first_name(self):
+        return self.__first_name
+
+    def get_middle_name(self):
+        return self.__middle_name
+
+    def get_address(self):
+        return self.__address
+
+    def get_phone(self):
+        return self.__phone
+
     # Метод для отображения информации о клиенте
     def display_info(self):
         return (f"Client: {self.__last_name} {self.__first_name} {self.__middle_name}\n"
@@ -66,12 +91,19 @@ class Client:
 
 # Пример использования
 try:
-    client = Client("Ivanov", "Ivan", "Ivanovich", "123 Main St", "+1234567890")
-    print(client.display_info())
+    # Использование стандартного конструктора
+    client1 = Client("Ivanov", "Ivan", "Ivanovich", "123 Main St", "+1234567890")
+    print(client1.display_info())
 
-    # Обновление данных клиента
-    client.set_phone("+0987654321")
-    print(f"Updated phone: {client.get_phone()}")
-    
+    # Использование конструктора с JSON-строкой
+    json_data = '{"last_name": "Petrov", "first_name": "Petr", "middle_name": "Petrovich", "address": "456 Main St", "phone": "+0987654321"}'
+    client2 = Client(data=json_data)
+    print(client2.display_info())
+
+    # Использование конструктора со строкой
+    string_data = "Sidorov Sidor Sidorovich 789 Main St +11234567890"
+    client3 = Client(data=string_data)
+    print(client3.display_info())
+
 except ValueError as e:
     print(e)
