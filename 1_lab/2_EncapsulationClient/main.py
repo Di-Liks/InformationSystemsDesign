@@ -1,21 +1,10 @@
 class Client:
     def __init__(self, last_name, first_name, middle_name, address, phone):
-        if not self.validate_last_name(last_name):
-            raise ValueError("Invalid last name")
-        if not self.validate_first_name(first_name):
-            raise ValueError("Invalid first name")
-        if not self.validate_middle_name(middle_name):
-            raise ValueError("Invalid middle name")
-        if not self.validate_address(address):
-            raise ValueError("Invalid address")
-        if not self.validate_phone(phone):
-            raise ValueError("Invalid phone number")
-        
-        self.__last_name = last_name
-        self.__first_name = first_name
-        self.__middle_name = middle_name
-        self.__address = address
-        self.__phone = phone
+        self.__last_name = self.validate_field(last_name, "Last name", is_alpha=True, max_length=50)
+        self.__first_name = self.validate_field(first_name, "First name", is_alpha=True, max_length=50)
+        self.__middle_name = self.validate_field(middle_name, "Middle name", is_alpha=True, max_length=50)
+        self.__address = self.validate_field(address, "Address", max_length=100)
+        self.__phone = self.validate_field(phone, "Phone number", is_phone=True, exact_length=12)
 
     # Геттеры
     def get_last_name(self):
@@ -35,56 +24,39 @@ class Client:
 
     # Сеттеры с валидацией
     def set_last_name(self, last_name):
-        if self.validate_last_name(last_name):
-            self.__last_name = last_name
-        else:
-            raise ValueError("Invalid last name")
+        self.__last_name = self.validate_field(last_name, "Last name", is_alpha=True, max_length=50)
 
     def set_first_name(self, first_name):
-        if self.validate_first_name(first_name):
-            self.__first_name = first_name
-        else:
-            raise ValueError("Invalid first name")
+        self.__first_name = self.validate_field(first_name, "First name", is_alpha=True, max_length=50)
 
     def set_middle_name(self, middle_name):
-        if self.validate_middle_name(middle_name):
-            self.__middle_name = middle_name
-        else:
-            raise ValueError("Invalid middle name")
+        self.__middle_name = self.validate_field(middle_name, "Middle name", is_alpha=True, max_length=50)
 
     def set_address(self, address):
-        if self.validate_address(address):
-            self.__address = address
-        else:
-            raise ValueError("Invalid address")
+        self.__address = self.validate_field(address, "Address", max_length=100)
 
     def set_phone(self, phone):
-        if self.validate_phone(phone):
-            self.__phone = phone
-        else:
-            raise ValueError("Invalid phone number")
+        self.__phone = self.validate_field(phone, "Phone number", is_phone=True, exact_length=12)
 
-    # Статические методы для валидации полей
+    # Универсальный метод для валидации полей
     @staticmethod
-    def validate_last_name(last_name):
-        return isinstance(last_name, str) and last_name.isalpha() and 1 <= len(last_name) <= 50
+    def validate_field(value, field_name, is_alpha=False, is_phone=False, max_length=None, exact_length=None):
+        if not isinstance(value, str):
+            raise ValueError(f"{field_name} must be a string")
 
-    @staticmethod
-    def validate_first_name(first_name):
-        return isinstance(first_name, str) and first_name.isalpha() and 1 <= len(first_name) <= 50
+        if max_length and len(value) > max_length:
+            raise ValueError(f"{field_name} must not exceed {max_length} characters")
 
-    @staticmethod
-    def validate_middle_name(middle_name):
-        return isinstance(middle_name, str) and middle_name.isalpha() and 1 <= len(middle_name) <= 50
+        if exact_length and len(value) != exact_length:
+            raise ValueError(f"{field_name} must be exactly {exact_length} characters")
 
-    @staticmethod
-    def validate_address(address):
-        return isinstance(address, str) and len(address) > 0 and len(address) <= 100
+        if is_alpha and not value.isalpha():
+            raise ValueError(f"{field_name} must contain only alphabetic characters")
 
-    @staticmethod
-    def validate_phone(phone):
-        # Допустим, что номер телефона должен быть строкой в формате "+1234567890"
-        return isinstance(phone, str) and phone.startswith('+') and phone[1:].isdigit() and len(phone) == 12
+        if is_phone and (not value.startswith('+') or not value[1:].isdigit()):
+            raise ValueError(f"{field_name} must be in the format '+1234567890'")
+
+        return value
 
     # Метод для отображения информации о клиенте
     def display_info(self):
@@ -92,12 +64,14 @@ class Client:
                 f"Address: {self.__address}\n"
                 f"Phone: {self.__phone}")
 
-# Пример использования:
+# Пример использования
 try:
     client = Client("Ivanov", "Ivan", "Ivanovich", "123 Main St", "+1234567890")
     print(client.display_info())
 
-    # Попробуем установить некорректный номер телефона
-    client.set_phone("12345")  # Это вызовет ошибку
+    # Обновление данных клиента
+    client.set_phone("+0987654321")
+    print(f"Updated phone: {client.get_phone()}")
+    
 except ValueError as e:
     print(e)
