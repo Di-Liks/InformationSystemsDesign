@@ -1,6 +1,6 @@
 import json
 
-class Client:
+class ClientBase:
     def __init__(self, last_name=None, first_name=None, middle_name=None, address=None, phone=None, data=None):
         if data:
             # Если передан data, проверим его тип (например, строка или JSON)
@@ -67,7 +67,7 @@ class Client:
 
         return value
 
-    # Геттеры
+    # Геттеры для получения полей
     def get_last_name(self):
         return self.__last_name
 
@@ -83,19 +83,9 @@ class Client:
     def get_phone(self):
         return self.__phone
 
-    # Полная версия объекта (с выводом всех полей)
-    def __str__(self):
-        return (f"Client: {self.__last_name} {self.__first_name} {self.__middle_name}\n"
-                f"Address: {self.__address}\n"
-                f"Phone: {self.__phone}")
-
-    # Краткая версия объекта (вывод только имени и телефона)
-    def get_short_info(self):
-        return f"Client: {self.__last_name} {self.__first_name} - Phone: {self.__phone}"
-
     # Сравнение объектов на равенство
     def __eq__(self, other):
-        if isinstance(other, Client):
+        if isinstance(other, ClientBase):
             return (self.__last_name == other.__last_name and
                     self.__first_name == other.__first_name and
                     self.__middle_name == other.__middle_name and
@@ -104,60 +94,35 @@ class Client:
         return False
 
 
-class ClientShortInfo:
-    def __init__(self, client: Client):
-        """
-        Инициализирует краткую версию клиента на основе экземпляра класса Client
-        """
-        self.__last_name = client.get_last_name()
-        self.__first_name = client.get_first_name()
-        self.__phone = client.get_phone()
-
+class Client(ClientBase):
     def __str__(self):
-        """
-        Возвращает строковое представление краткой версии клиента
-        """
-        return f"Client: {self.__last_name} {self.__first_name} - Phone: {self.__phone}"
+        #Возвращает полную версию информации о клиенте
+        return (f"Client: {self.get_last_name()} {self.get_first_name()} {self.get_middle_name()}\n"
+                f"Address: {self.get_address()}\n"
+                f"Phone: {self.get_phone()}")
 
-    # Полная версия клиента через привязку к исходному клиенту
-    def get_full_info(self, client: Client):
-        """
-        Возвращает полную информацию об объекте клиента
-        """
-        return str(client)
 
-    # Сравнение краткой версии клиента
-    def __eq__(self, other):
-        if isinstance(other, ClientShortInfo):
-            return (self.__last_name == other.__last_name and
-                    self.__first_name == other.__first_name and
-                    self.__phone == other.__phone)
-        return False
+class ClientShortInfo(ClientBase):
+    def __str__(self):
+        #Возвращает краткую версию информации о клиенте
+        return f"Client: {self.get_last_name()} {self.get_first_name()} - Phone: {self.get_phone()}"
 
 
 # Пример использования
 try:
-    # Создаем объект Client
+    # Создаем объект Client (полная версия)
     client1 = Client("Ivanov", "Ivan", "Ivanovich", "123 Main St", "+1234567890")
     
-    # Создаем краткую версию этого клиента
-    client_short_info = ClientShortInfo(client1)
+    # Создаем объект ClientShortInfo (краткая версия)
+    client_short_info = ClientShortInfo("Ivanov", "Ivan", "Ivanovich", "123 Main St", "+1234567890")
+    
+    # Вывод полной версии клиента
+    print("Полная версия клиента:")
+    print(client1)  # Output: Полная информация о клиенте
     
     # Вывод краткой версии клиента
-    print("Краткая версия клиента:")
-    print(client_short_info)  # Output: Client: Ivanov Ivan - Phone: +1234567890
-    
-    # Вывод полной версии через метод get_full_info()
-    print("\nПолная версия клиента:")
-    print(client_short_info.get_full_info(client1))  # Выведет полную информацию о клиенте
-
-    # Создание ещё одного клиента для сравнения
-    client2 = Client("Ivanov", "Ivan", "Ivanovich", "123 Main St", "+1234567890")
-    client_short_info_2 = ClientShortInfo(client2)
-    
-    # Сравнение кратких версий клиентов
-    print("\nСравнение кратких версий:")
-    print(client_short_info == client_short_info_2)  # Output: True
+    print("\nКраткая версия клиента:")
+    print(client_short_info)  # Output: Краткая информация о клиенте
 
 except ValueError as e:
     print(e)
