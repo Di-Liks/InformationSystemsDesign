@@ -1,82 +1,95 @@
-import json
+class MyEntityRepJson:
+    def __init__(self, file_name):
+        self.file_name = file_name
+        self.clients = self._read_file()
 
-class MyEntity_rep_json:
-    def __init__(self, json_file):
-        self.json_file = json_file
-        self.data = self.read_all()  # Чтение данных из файла при инициализации
-
-    # a. Чтение всех значений из файла
-    def read_all(self):
+    def _read_file(self):
+        """Чтение данных из файла и преобразование их в объекты."""
         try:
-            with open(self.json_file, 'r', encoding='utf-8') as file:
-                return json.load(file)
+            with open(self.file_name, 'r') as file:
+                data = file.read()
+                if data:
+                    return self._parse_json(data)
+                return []
         except FileNotFoundError:
             return []
 
-    # b. Запись всех значений в файл
-    def write_all(self):
-        with open(self.json_file, 'w', encoding='utf-8') as file:
-            json.dump(self.data, file, ensure_ascii=False, indent=4)
+    def _write_file(self):
+        """Запись текущего состояния клиентов в файл."""
+        with open(self.file_name, 'w') as file:
+            file.write(self._convert_to_json(self.clients))
 
-    # c. Получить объект по ID
-    def get_by_id(self, client_id):
-        for client in self.data:
-            if client['ClientID'] == client_id:
+    def _parse_json(self, data):
+        """Парсинг данных в формате, напоминающем JSON."""
+        objects = []
+        data = data.strip()[1:-1]
+        if not data:
+            return []
+        for item in data.split('}, {'):
+            item = item.strip('{}')
+            obj = {}
+            for pair in item.split(', '):
+                key, value = pair.split(': ')
+                obj[key.strip('"')] = value.strip('"')
+            objects.append(obj)
+        return objects
+
+    def _convert_to_json(self, objects):
+        """Конвертация объектов в строку формата, напоминающего JSON."""
+        json_str = "["
+        for obj in objects:
+            json_str += '{' + ', '.join([f'"{k}": "{v}"' for k, v in obj.items()]) + '}, '
+        json_str = json_str.rstrip(', ') + ']'
+        return json_str
+
+    def get_object_by_id(self, client_id):
+        """Получить объект по ID."""
+        for client in self.clients:
+            if client['ClientID'] == str(client_id):
                 return client
         return None
 
-    # d. Получить список k по счету n объектов класса short
-    def get_k_n_short_list(self, k, n):
-        start_index = (n - 1) * k
-        end_index = start_index + k
-        return self.data[start_index:end_index]
-
-    # e. Сортировать элементы по выбранному полю (например, по фамилии)
-    def sort_by_field(self, field_name='LastName'):
-        self.data.sort(key=lambda x: x.get(field_name, ''))
-        self.write_all()
-
-    # f. Добавить объект в список (при добавлении сформировать новый ID)
-    def add_client(self, last_name, first_name, middle_name, address, phone):
-        new_id = max([client['ClientID'] for client in self.data], default=0) + 1
+    def add_object(self, last_name, first_name, middle_name, address, phone):
+        """Добавить новый объект с автоматическим присвоением ID."""
+        new_id = str(max([int(client['ClientID']) for client in self.clients]) + 1 if self.clients else 1)
         new_client = {
-            'ClientID': new_id,
-            'LastName': last_name,
-            'FirstName': first_name,
-            'MiddleName': middle_name,
-            'Address': address,
-            'Phone': phone
+            "ClientID": new_id,
+            "LastName": last_name,
+            "FirstName": first_name,
+            "MiddleName": middle_name,
+            "Address": address,
+            "Phone": phone
         }
-        self.data.append(new_client)
-        self.write_all()
+        self.clients.append(new_client)
+        self._write_file()
 
-    # g. Заменить элемент списка по ID
-    def update_client_by_id(self, client_id, last_name=None, first_name=None, middle_name=None, address=None, phone=None):
-        client = self.get_by_id(client_id)
-        if client:
-            if last_name:
+    def update_object(self, client_id, last_name, first_name, middle_name, address, phone):
+        """Обновить существующий объект по ID."""
+        for client in self.clients:
+            if client['ClientID'] == str(client_id):
                 client['LastName'] = last_name
-            if first_name:
                 client['FirstName'] = first_name
-            if middle_name:
                 client['MiddleName'] = middle_name
-            if address:
                 client['Address'] = address
-            if phone:
                 client['Phone'] = phone
-            self.write_all()
-            return True
+                self._write_file()
+                return True
         return False
 
-    # h. Удалить элемент списка по ID
-    def delete_client_by_id(self, client_id):
-        client = self.get_by_id(client_id)
-        if client:
-            self.data.remove(client)
-            self.write_all()
-            return True
-        return False
+    def delete_object(self, client_id):
+        """Удалить объект по ID."""
+        self.clients = [client for client in self.clients if client['ClientID'] != str(client_id)]
+        self._write_file()
 
-    # i. Получить количество элементов
+    def get_k_n_short_list(self, k, n):
+        """Получить k объектов начиная с n."""
+        return self.clients[n:n+k]
+
+    def sort_by_field(self, field_name):
+        """Сортировать объекты по указанному полю."""
+        self.clients.sort(key=lambda x: x[field_name])
+        self._write_file()
+
     def get_count(self):
-        return len(self.data)
+        """Получить количество объектов."""
+        return len(self.clients)
