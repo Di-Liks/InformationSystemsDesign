@@ -1,4 +1,7 @@
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem, QPushButton, QDialog, QLineEdit, QLabel
+from PyQt5.QtWidgets import (
+    QMainWindow, QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem,
+    QPushButton, QLineEdit, QLabel, QDialog, QFormLayout, QDialogButtonBox
+)
 
 
 class MainView(QMainWindow):
@@ -22,6 +25,12 @@ class MainView(QMainWindow):
         self.delete_button = QPushButton("Удалить запись")
         self.layout.addWidget(self.delete_button)
 
+        self.filter_button = QPushButton("Применить фильтр")
+        self.layout.addWidget(self.filter_button)
+
+        self.reset_filter_button = QPushButton("Сбросить фильтр")
+        self.layout.addWidget(self.reset_filter_button)
+
         self.central_widget.setLayout(self.layout)
         self.setCentralWidget(self.central_widget)
 
@@ -33,31 +42,29 @@ class MainView(QMainWindow):
         for row, item in enumerate(items):
             self.table.setItem(row, 0, QTableWidgetItem(str(item.id)))
             self.table.setItem(row, 1, QTableWidgetItem(item.name))
-            self.table.setItem(row, 2, QTableWidgetItem(str(item.price)))
+            self.table.setItem(row, 2, QTableWidgetItem(f"{item.price:.2f}"))
 
 
 class ItemFormView(QDialog):
     def __init__(self, item=None):
         super().__init__()
-        self.setWindowTitle("Добавить/Редактировать запись")
-        self.layout = QVBoxLayout()
+        self.setWindowTitle("Форма")
+        self.layout = QFormLayout()
 
+        self.id_input = QLineEdit()
         self.name_input = QLineEdit()
         self.price_input = QLineEdit()
 
         if item:
+            self.id_input.setText(str(item.id))
             self.name_input.setText(item.name)
             self.price_input.setText(str(item.price))
 
-        self.layout.addWidget(QLabel("Название"))
-        self.layout.addWidget(self.name_input)
-        self.layout.addWidget(QLabel("Цена"))
-        self.layout.addWidget(self.price_input)
+        self.layout.addRow(QLabel("ID:"), self.id_input)
+        self.layout.addRow(QLabel("Название:"), self.name_input)
+        self.layout.addRow(QLabel("Цена:"), self.price_input)
 
-        self.submit_button = QPushButton("Сохранить")
-        self.layout.addWidget(self.submit_button)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.layout.addWidget(self.buttons)
 
         self.setLayout(self.layout)
-
-    def get_data(self):
-        return self.name_input.text(), self.price_input.text()

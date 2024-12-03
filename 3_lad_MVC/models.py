@@ -3,7 +3,6 @@ from pathlib import Path
 
 
 class Observer:
-    """Интерфейс наблюдателя."""
     def update(self, items):
         pass
 
@@ -12,7 +11,7 @@ class Item:
     def __init__(self, id, name, price):
         self.id = id
         self.name = name
-        self.price = price
+        self.price = float(price)
 
     def to_dict(self):
         return {"id": self.id, "name": self.name, "price": self.price}
@@ -68,10 +67,19 @@ class Repository:
         self._save_items()
         self.notify_observers()
 
-    def filter_items(self, condition):
-        return list(filter(condition, self.items))
 
-    def sort_items(self, key, reverse=False):
-        self.items.sort(key=key, reverse=reverse)
-        self._save_items()
-        self.notify_observers()
+class FilteredRepository:
+    def __init__(self, repository, filter_condition=None):
+        self.repository = repository
+        self.filter_condition = filter_condition
+
+    def set_filter(self, filter_condition):
+        self.filter_condition = filter_condition
+
+    def get_filtered_items(self):
+        if self.filter_condition is None:
+            return self.repository.get_all_items()
+        return list(filter(self.filter_condition, self.repository.get_all_items()))
+
+    def __getattr__(self, attr):
+        return getattr(self.repository, attr)
