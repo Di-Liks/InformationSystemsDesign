@@ -1,66 +1,84 @@
-from PyQt5.QtWidgets import QInputDialog, QMessageBox
+from PyQt5.QtWidgets import QMessageBox
 from models import Item
 
-class MainController:
-    def __init__(self, view, repository):
-        self.view = view
-        self.repo = repository
 
-        # Подключаем сигналы
+class MainController:
+    def __init__(self, view, repo):
+        self.view = view
+        self.repo = repo
+
+        self.repo.add_observer(self.view)
+
         self.view.add_button.clicked.connect(self.add_item)
         self.view.edit_button.clicked.connect(self.edit_item)
         self.view.delete_button.clicked.connect(self.delete_item)
 
-        # Инициализируем таблицу
-        self.refresh_table()
+        self.update_view()
 
-    def refresh_table(self):
-        items = self.repo.get_all_items()
-        self.view.update_table(items)
+    def update_view(self):
+        self.view.update(self.repo.get_all_items())
 
     def add_item(self):
-        id, ok1 = QInputDialog.getInt(self.view, "Добавить товар", "Введите ID:")
-        if not ok1:
-            return
-        name, ok2 = QInputDialog.getText(self.view, "Добавить товар", "Введите название:")
-        if not ok2:
-            return
-        price, ok3 = QInputDialog.getDouble(self.view, "Добавить товар", "Введите цену:")
-        if not ok3:
-            return
-
-        self.repo.add_item(Item(id, name, price))
-        self.refresh_table()
+        from factories import ControllerFactory
+        controller = ControllerFactory.create_add_item_controller(self.repo)
+        controller.view.exec_()
+        self.update_view()
 
     def edit_item(self):
         selected_row = self.view.table.currentRow()
-        if selected_row < 0:
-            QMessageBox.warning(self.view, "Ошибка", "Выберите строку для редактирования.")
+        if selected_row == -1:
+            QMessageBox.warning(self.view, "Ошибка", "Выберите запись для редактирования.")
             return
 
-        id = int(self.view.table.item(selected_row, 0).text())
-        item = next((i for i in self.repo.get_all_items() if i.id == id), None)
+        item_id = int(self.view.table.item(selected_row, 0).text())
+        item = next((i for i in self.repo.get_all_items() if i.id == item_id), None)
 
-        if not item:
-            QMessageBox.warning(self.view, "Ошибка", "Не удалось найти товар.")
-            return
-
-        name, ok1 = QInputDialog.getText(self.view, "Редактировать товар", "Введите новое название:", text=item.name)
-        if not ok1:
-            return
-        price, ok2 = QInputDialog.getDouble(self.view, "Редактировать товар", "Введите новую цену:", value=item.price)
-        if not ok2:
-            return
-
-        self.repo.update_item(id, Item(id, name, price))
-        self.refresh_table()
+        from factories import ControllerFactory
+        controller = ControllerFactory.create_edit_item_controller(self.repo, item)
+        controller.view.exec_()
+        self.update_view()
 
     def delete_item(self):
         selected_row = self.view.table.currentRow()
-        if selected_row < 0:
-            QMessageBox.warning(self.view, "Ошибка", "Выберите строку для удаления.")
+        if selected_row == -1:
+            QMessageBox.warning(self.view, "Ошибка", "Выберите запись для удаления.")
             return
 
-        id = int(self.view.table.item(selected_row, 0).text())
-        self.repo.delete_item(id)
-        self.refresh_table()
+        item_id = int(self.view.table.item(selected_row, 0).text())
+        self.repo.delete_item(item_id)
+        self.update_view()
+
+
+class AddItemController:
+    def __init__(self, view, repo):
+        self.view = view
+        self.repo = repo
+        self.view.submit_button.clicked.connect(self.add_item)
+
+    def add_item(self):
+        name, price = self.view.get_data()
+        if not name or not price.isdigit():
+            QMessageBox.warning(self.view, "Ошибка", "Введите корректные данные.")
+            return
+
+        item = Item(id=len(self.repo.get_all_items()) + 1, name=name, price=float(price))
+        self.repo.add_item(item)
+        self.view.close()
+
+
+class EditItemController:
+    def __init__(self, view, repo, item):
+        self.view = view
+        self.repo = repo
+        self.item = item
+        self.view.submit_button.clicked.connect(self.edit_item)
+
+    def edit_item(self):
+        name, price = self.view.get_data()
+        if not name or not price.isdigit():
+            QMessageBox.warning(self.view, "Ошибка", "Введите корректные данные.")
+            return
+
+        updated_item = Item(id=self.item.id, name=name, price=float(price))
+        self.repo.update_item(self.item.id, updated_item)
+        self.view.close()
