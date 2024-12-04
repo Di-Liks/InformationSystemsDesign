@@ -48,8 +48,15 @@ class Repository:
     def get_all_items(self):
         return self.items
 
-    def add_item(self, item):
-        self.items.append(item)
+    def _generate_next_id(self):
+        if not self.items:
+            return 1
+        return max(item.id for item in self.items) + 1
+
+    def add_item(self, name, price):
+        new_id = self._generate_next_id()
+        new_item = Item(new_id, name, price)
+        self.items.append(new_item)
         self._save_items()
         self.notify_observers()
 

@@ -89,13 +89,13 @@ class AddItemController:
 
     def add_item(self):
         try:
-            id = int(self.view.id_input.text())
             name = self.view.name_input.text()
             price = float(self.view.price_input.text())
-            self.repo.add_item(Item(id, name, price))
+            self.repo.add_item(name, price)
             self.view.accept()
         except ValueError:
             QMessageBox.warning(self.view, "Ошибка", "Введите корректные данные.")
+
 
 
 class EditItemController:
@@ -104,15 +104,17 @@ class EditItemController:
         self.repo = repo
         self.item = item
 
+        self.view.name_input.setText(self.item.name)
+        self.view.price_input.setText(str(self.item.price))
+
         self.view.buttons.accepted.connect(self.save_item)
         self.view.buttons.rejected.connect(self.view.reject)
 
     def save_item(self):
         try:
-            new_id = int(self.view.id_input.text())
             new_name = self.view.name_input.text()
             new_price = float(self.view.price_input.text())
-            new_item = Item(new_id, new_name, new_price)
+            new_item = Item(self.item.id, new_name, new_price)
             self.repo.update_item(self.item.id, new_item)
             self.view.accept()
         except ValueError:

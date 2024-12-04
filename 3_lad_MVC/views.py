@@ -7,8 +7,8 @@ from PyQt5.QtWidgets import (
 class MainView(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("CRUD-приложение")
-        self.setGeometry(100, 100, 800, 600)
+        self.setWindowTitle("3_lab_MVC")
+        self.setGeometry(100, 100, 400, 600)
 
         self.central_widget = QWidget()
         self.layout = QVBoxLayout()
@@ -51,16 +51,13 @@ class ItemFormView(QDialog):
         self.setWindowTitle("Форма")
         self.layout = QFormLayout()
 
-        self.id_input = QLineEdit()
         self.name_input = QLineEdit()
         self.price_input = QLineEdit()
 
         if item:
-            self.id_input.setText(str(item.id))
             self.name_input.setText(item.name)
             self.price_input.setText(str(item.price))
 
-        self.layout.addRow(QLabel("ID:"), self.id_input)
         self.layout.addRow(QLabel("Название:"), self.name_input)
         self.layout.addRow(QLabel("Цена:"), self.price_input)
 
@@ -68,3 +65,4 @@ class ItemFormView(QDialog):
         self.layout.addWidget(self.buttons)
 
         self.setLayout(self.layout)
+
