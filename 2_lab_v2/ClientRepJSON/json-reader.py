@@ -4,7 +4,6 @@ import os
 
 # Сущность Client
 class Client:
-    #Инициализация экземпляра класса Client
     def __init__(self, client_id, last_name, first_name, middle_name, address, phone):
         self.ClientID = client_id
         self.LastName = last_name
@@ -13,7 +12,6 @@ class Client:
         self.Address = address
         self.Phone = phone
 
-    #Преобразование объекта Client в словарь
     def to_dict(self):
         return {
             "ClientID": self.ClientID,
@@ -35,8 +33,6 @@ class Client:
             data["Phone"],
         )
 
-
-# Репозиторий для работы с Client в JSON
 class ClientRepJSON:
     def __init__(self, file_path):
         self.file_path = file_path
@@ -107,8 +103,6 @@ class ClientRepJSON:
                 f"ID: {client.ClientID}, {client.LastName} {client.FirstName}, Телефон: {client.Phone}"
             )
 
-
-# Консольное меню
 def main():
     file_path = "clients.json"
     repo = ClientRepJSON(file_path)
