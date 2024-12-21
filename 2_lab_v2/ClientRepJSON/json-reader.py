@@ -2,7 +2,6 @@ import json
 import os
 
 
-# Сущность Client
 class Client:
     def __init__(self, client_id, last_name, first_name, middle_name, address, phone):
         self.ClientID = client_id
@@ -38,8 +37,7 @@ class ClientRepJSON:
         self.file_path = file_path
         self.clients = []
         self.load_data()
-
-    # a. Чтение всех значений из файла
+        
     def load_data(self):
         if os.path.exists(self.file_path):
             with open(self.file_path, "r", encoding="utf-8") as file:
@@ -48,32 +46,26 @@ class ClientRepJSON:
         else:
             self.clients = []
 
-    # b. Запись всех значений в файл
     def save_data(self):
         with open(self.file_path, "w", encoding="utf-8") as file:
             json.dump([client.to_dict() for client in self.clients], file, indent=4)
 
-    # c. Получить объект по ID
     def get_by_id(self, client_id):
         return next((c for c in self.clients if c.ClientID == client_id), None)
 
-    # d. Получить k по счету n объектов
     def get_k_n_short_list(self, k, n):
         start = (k - 1) * n
         return self.clients[start : start + n]
 
-    # e. Сортировать элементы по выбранному полю (фамилия)
     def sort_by_last_name(self):
         self.clients.sort(key=lambda x: x.LastName)
 
-    # f. Добавить объект в список
     def add(self, client):
         new_id = max((c.ClientID for c in self.clients), default=0) + 1
         client.ClientID = new_id
         self.clients.append(client)
         self.save_data()
 
-    # g. Заменить элемент списка по ID
     def replace_by_id(self, client_id, updated_client):
         for index, client in enumerate(self.clients):
             if client.ClientID == client_id:
@@ -83,7 +75,6 @@ class ClientRepJSON:
                 return True
         return False
 
-    # h. Удалить элемент списка по ID
     def delete_by_id(self, client_id):
         client = self.get_by_id(client_id)
         if client:
@@ -92,11 +83,9 @@ class ClientRepJSON:
             return True
         return False
 
-    # i. Получить количество элементов
     def get_count(self):
         return len(self.clients)
 
-    # Показать все элементы
     def display_all(self):
         for client in self.clients:
             print(
