@@ -149,6 +149,7 @@ class Client:
             raise ValueError("Неверные аргументы для конструктора.")
 
     def _validate_and_set(self, client_id, last_name, first_name, middle_name, address, phone):
+        Client.validate_field("ClientID", client_id, int)
         Client.validate_field("Фамилия", last_name, str)
         Client.validate_field("Имя", first_name, str)
         Client.validate_field("Отчество", middle_name, str)
