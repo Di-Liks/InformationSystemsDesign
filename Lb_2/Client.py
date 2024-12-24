@@ -5,128 +5,129 @@ import json
 import psycopg2
 import os
 
-class ClientDB:
+class DatabaseConnector:
+    __instance = None
+
+    @staticmethod
+    def get_instance(host, user, password, database, port=5432):
+        if DatabaseConnector.__instance is None:
+            DatabaseConnector(host, user, password, database, port)
+        return DatabaseConnector.__instance
+
     def __init__(self, host, user, password, database, port=5432):
-        self.connection = None
-        self.cursor = None
+        if DatabaseConnector.__instance is not None:
+            raise Exception("Это паттерн 'Одиночка'")
+        else:
+            DatabaseConnector.__instance = self
+            self.connection = None
+            self.cursor = None
+            try:
+                self.connection = psycopg2.connect(
+                    host=host,
+                    user=user,
+                    password=password,
+                    database=database,
+                    port=port
+                )
+                self.cursor = self.connection.cursor()
+            except psycopg2.Error as e:
+                print(f"Ошибка подключения к базе данных PostgreSQL: {e}")
+
+    def execute_query(self, query, params=None):
         try:
-            self.connection = psycopg2.connect(
-                host=host,
-                user=user,
-                password=password,
-                database=database,
-                port=port
-            )
-            self.cursor = self.connection.cursor()
+            if params:
+                self.cursor.execute(query, params)
+            else:
+                self.cursor.execute(query)
+            self.connection.commit()
+            return self.cursor
         except psycopg2.Error as e:
-            print(f"Ошибка подключения к базе данных PostgreSQL: {e}")
+            print(f"Ошибка выполнения запроса: {e}")
+            if self.connection:
+                self.connection.rollback()
+            return None
 
     def close(self):
         if self.connection:
             self.cursor.close()
             self.connection.close()
 
+
+class ClientDB:
+    def __init__(self, host, user, password, database, port=5432):
+        self.db_connector = db_connector
+
     def initialize_db(self):
-        try:
-            self.cursor.execute("""
-                CREATE TABLE IF NOT EXISTS Client (
-                    ClientID SERIAL PRIMARY KEY,
-                    LastName VARCHAR(255) NOT NULL,
-                    FirstName VARCHAR(255) NOT NULL,
-                    MiddleName VARCHAR(255) NOT NULL,
-                    Address TEXT NOT NULL,
-                    Phone VARCHAR(20) NOT NULL
-                )
-            """)
-            self.connection.commit()
+        cursor = self.db_connector.execute_query("""
+            CREATE TABLE IF NOT EXISTS Client (
+                ClientID SERIAL PRIMARY KEY,
+                LastName VARCHAR(255) NOT NULL,
+                FirstName VARCHAR(255) NOT NULL,
+                MiddleName VARCHAR(255) NOT NULL,
+                Address TEXT NOT NULL,
+                Phone VARCHAR(20) NOT NULL
+            )
+        """)
+        if cursor:
             print("База данных PostgreSQL и таблица 'Client' успешно созданы.")
-        except psycopg2.Error as e:
-            print(f"Ошибка создания таблицы: {e}")
-            if self.connection:
-                self.connection.rollback()
 
     def get_client_by_id(self, client_id):
-        try:
-            self.cursor.execute("SELECT * FROM Client WHERE ClientID = %s", (client_id,))
-            result = self.cursor.fetchone()
-            return dict(zip([desc[0] for desc in self.cursor.description], result)) if result else None
-        except psycopg2.Error as e:
-            print(f"Ошибка получения клиента по ID: {e}")
-            return None
+        cursor = self.db_connector.execute_query("SELECT * FROM Client WHERE ClientID = %s", (client_id,))
+        if cursor:
+            result = cursor.fetchone()
+            return dict(zip([desc[0] for desc in cursor.description], result)) if result else None
+        return None
 
     def get_all_client(self):
-        try:
-            self.cursor.execute("SELECT * FROM Client")
-            results = self.cursor.fetchall()
-            return [dict(zip([desc[0] for desc in self.cursor.description], row)) for row in results]
-        except psycopg2.Error as e:
-            print(f"Ошибка получения всех клиентов: {e}")
-            return []
+        cursor = self.db_connector.execute_query("SELECT * FROM Client")
+        if cursor:
+            results = cursor.fetchall()
+            return [dict(zip([desc[0] for desc in cursor.description], row)) for row in results]
+        return []
 
     def add_client(self, client_data):
-        try:
-            query = """INSERT INTO Client (LastName, FirstName, MiddleName, Address, Phone) 
-                      VALUES (%s, %s, %s, %s, %s) RETURNING ClientID;"""
-            self.cursor.execute(query, (client_data['LastName'],
-                                        client_data['FirstName'],
-                                        client_data['MiddleName'],
-                                        client_data['Address'],
-                                        client_data['Phone']))
-            self.connection.commit()
-            return self.cursor.fetchone()[0]
-        except psycopg2.Error as e:
-            print(f"Ошибка добавления клиента: {e}")
-            if self.connection:
-                self.connection.rollback()
-            return None
+        query = """INSERT INTO Client (LastName, FirstName, MiddleName, Address, Phone) 
+                    VALUES (%s, %s, %s, %s, %s) RETURNING ClientID;"""
+        cursor = self.db_connector.execute_query(query, (client_data['LastName'],
+                                                         client_data['FirstName'],
+                                                         client_data['MiddleName'],
+                                                         client_data['Address'],
+                                                         client_data['Phone']))
+        if cursor:
+            result = cursor.fetchone()
+            return result[0] if result else None
+        return None
 
     def update_client(self, client_id, updated_client):
-        try:
-            query = """UPDATE Client 
-                      SET LastName = %s, FirstName = %s, MiddleName = %s, Address = %s, Phone = %s
-                      WHERE ClientID = %s"""
-            self.cursor.execute(query, (updated_client['LastName'],
-                                        updated_client['FirstName'],
-                                        updated_client['MiddleName'],
-                                        updated_client['Address'],
-                                        updated_client['Phone'],
-                                        client_id))
-            self.connection.commit()
-            print("Данные клиента успешно обновлены.")
-        except psycopg2.Error as e:
-            print(f"Ошибка обновления клиента: {e}")
-            if self.connection:
-                self.connection.rollback()
+        query = """UPDATE Client
+                    SET LastName = %s, FirstName = %s, MiddleName = %s, Address = %s, Phone = %s
+                    WHERE ClientID = %s"""
+        self.cursor.execute(query, (updated_client['LastName'],
+                                    updated_client['FirstName'],
+                                    updated_client['MiddleName'],
+                                    updated_client['Address'],
+                                    updated_client['Phone'],
+                                    client_id))
+        print("Данные клиента успешно обновлены.")
 
     def delete_client(self, client_id):
-        try:
-            self.cursor.execute("DELETE FROM Client WHERE ClientID = %s", (client_id,))
-            self.connection.commit()
-            return True
-        except psycopg2.Error as e:
-            print(f"Ошибка удаления клиента: {e}")
-            if self.connection:
-                self.connection.rollback()
-            return False
+        cursor = self.db_connector.execute_query("DELETE FROM Client WHERE ClientID = %s", (client_id,))
+        return cursor is not None
 
     def get_count(self):
-        try:
-            self.cursor.execute("SELECT COUNT(*) FROM Client")
-            result = self.cursor.fetchone()
+        cursor = self.db_connector.execute_query("SELECT COUNT(*) FROM Client")
+        if cursor:
+            result = cursor.fetchone()
             return result[0] if result else 0
-        except psycopg2.Error as e:
-            print(f"Ошибка получения количества клиентов: {e}")
-            return 0
+        return 0
 
     def get_k_n_short_list(self, k, n):
         offset = (k - 1) * n
-        try:
-            self.cursor.execute("SELECT LastName, FirstName, MiddleName, Address, Phone FROM Client LIMIT %s OFFSET %s", (n, offset))
-            results = self.cursor.fetchall()
+        cursor = self.db_connector.execute_query("SELECT LastName, FirstName, MiddleName, Address, Phone FROM Client LIMIT %s OFFSET %s", (n, offset))
+        if cursor:
+            results = cursor.fetchall()
             return [dict(zip(['LastName', 'FirstName', 'MiddleName', 'Address', 'Phone'], row)) for row in results]
-        except psycopg2.Error as e:
-            print(f"Ошибка получения списка клиентов: {e}")
-            return []
+        return []
 
 
 class Client:
