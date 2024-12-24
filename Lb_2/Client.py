@@ -1,7 +1,5 @@
 from dataclasses import field
 
-from random import choice
-
 import yaml
 import json
 import os
@@ -95,32 +93,14 @@ class ClientShort(Client):
     def __str__(self):
         return f"ClientShort(ID={self._client_id}, Фамилия={self._last_name}, Телефон={self._phone})"
 
-class Client_rep_yaml:
-    def __init__(self, filepath="clients.yaml"):
+
+class Client_rep:
+    def __init__(self, filepath):
         self.filepath = filepath
         self.clients = []
         self.next_id = 1
         if os.path.exists(self.filepath):
-            self.load_from_yaml()
-
-    def load_from_yaml(self):
-        try:
-            with open(self.filepath, "r", encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-                if data:
-                    for client_data in data:
-                        self.clients.append(Client(*client_data.values()))
-                    self.next_id = max(c._client_id for c in self.clients) + 1 if self.clients else 1
-        except (FileNotFoundError, yaml.YAMLError) as e:
-            print(f"Ошибка при загрузке из YAML: {e}")
-
-    def save_to_yaml(self):
-        try:
-            data = [vars(c) for c in self.clients]
-            with open(self.filepath, "w", encoding="utf-8") as f:
-                yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
-        except (FileNotFoundError, yaml.YAMLError) as e:
-            print(f"Ошибка при сохранении в YAML: {e}")
+            self.load_data()
 
     def get_client_by_id(self, client_id):
         for client in self.clients:
@@ -141,7 +121,7 @@ class Client_rep_yaml:
         new_client = Client(self.next_id, last_name, first_name, middle_name, address, phone)
         self.clients.append(new_client)
         self.next_id += 1
-        self.save_to_yaml()
+        self.save_data()
         return new_client
 
     def update_client(self, client_id, last_name, first_name, middle_name, address, phone):
@@ -158,21 +138,43 @@ class Client_rep_yaml:
 
     def delete_client(self, client_id):
         self.clients = [c for c in self.clients if c._client_id != client_id]
-        self.save_to_yaml()
+        self.save_data()
 
     def get_count(self):
         return len(self.clients)
 
 
-class Client_rep_json:
-    def __init__(self, filepath="clients.json"):
-        self.filepath = filepath
-        self.clients = []
-        self.next_id = 1
-        if os.path.exists(self.filepath):
-            self.load_from_json()
+class Client_rep_yaml(Client_rep):
+    def __init__(self, filepath="clients.yaml"):
+        super().__init__(filepath)
 
-    def load_from_json(self):
+    def load_data(self):
+        try:
+            with open(self.filepath, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                if data:
+                    for client_data in data:
+                        self.clients.append(Client(*client_data.values()))
+                    self.next_id = max(c._client_id for c in self.clients) + 1 if self.clients else 1
+        except (FileNotFoundError, yaml.YAMLError) as e:
+            print(f"Ошибка при загрузке из YAML: {e}")
+
+    def save_data(self):
+        try:
+            data = [vars(c) for c in self.clients]
+            with open(self.filepath, "w", encoding="utf-8") as f:
+                yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        except (FileNotFoundError, yaml.YAMLError) as e:
+            print(f"Ошибка при сохранении в YAML: {e}")
+
+
+
+
+class Client_rep_json(Client_rep):
+    def __init__(self, filepath="clients.json"):
+        super().__init__(filepath)
+
+    def load_data(self):
         try:
             with open(self.filepath, "r") as f:
                 data = json.load(f)
@@ -182,7 +184,7 @@ class Client_rep_json:
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Ошибка при загрузке из JSON: {e}")
 
-    def save_to_json(self):
+    def save_data(self):
         try:
             data = [vars(c) for c in self.clients]
             with open(self.filepath, "w") as f:
@@ -190,50 +192,29 @@ class Client_rep_json:
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Ошибка при сохранении в JSON: {e}")
 
-    def get_client_by_id(self, client_id):
-        for client in self.clients:
-            if client._client_id == client_id:
-                return client
-        return None
-
-    def get_k_n_short_list(self, k, n):
-        return [ClientShort(c) for c in self.clients[(k-1)*n:(k-1)*n+n]]
-
-    def sort_by_field(self, field):
-        try:
-            self.clients.sort(key=lambda x: getattr(x, f"_{field}"), reverse=False)
-        except AttributeError:
-            print(f"Поле '{field}' не найдено.")
-
-    def add_client(self, last_name, first_name, middle_name, address, phone):
-        new_client = Client(self.next_id, last_name, first_name, middle_name, address, phone)
-        self.clients.append(new_client)
-        self.next_id += 1
-        self.save_to_json()
-        return new_client
-
-    def update_client(self, client_id, last_name, first_name, middle_name, address, phone):
-        client = self.get_client_by_id(client_id)
-        if client:
-            client._last_name = last_name
-            client._first_name = first_name
-            client._middle_name = middle_name
-            client._address = address
-            client._phone = phone
-            self.save_to_json()
-            return True
-        return False
-
-    def delete_client(self, client_id):
-        self.clients = [c for c in self.clients if c._client_id != client_id]
-        self.save_to_json()
-
-    def get_count(self):
-        return len(self.clients)
-
 
 def main():
-    client_rep = Client_rep_yaml()
+    while True:
+        print("\nМеню:")
+        print("1. Выбрать JSON")
+        print("2. Выбрать YAML")
+        print("3. Выход")
+
+        choice = input("Выберите тип файла: ")
+
+        if choice == "1":
+            client_rep = Client_rep_json()
+            run_operations(client_rep)
+        elif choice == "2":
+            client_rep = Client_rep_yaml()
+            run_operations(client_rep)
+        elif choice == "3":
+            print("Выход")
+            break
+        else:
+            print("Неверный выбор.")
+
+def run_operations(client_rep):
     while True:
         print("\nМеню:")
         print("1. Вывести всех клиентов")
@@ -296,7 +277,7 @@ def main():
                 print(f"\nКраткая информация о клиентах на странице '{k}':", short_list)
 
             elif choice == "7":
-                field = input("Введите поле для сортировки (ClientID, last_name, first_name, middle_name, address, phone): ")
+                field = input("Введите поле для сортировки (client_id, last_name, first_name, middle_name, address, phone): ")
                 client_rep.sort_by_field(field)
                 print("\nОтсортированный список:", client_rep.clients)
 
