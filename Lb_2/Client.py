@@ -2,6 +2,7 @@ from dataclasses import field
 
 from random import choice
 
+import yaml
 import json
 import os
 
@@ -52,6 +53,19 @@ class Client:
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             raise ValueError(f"Ошибка при разборе JSON: {e}")
 
+    def _from_yaml(self, yaml_string):
+        try:
+            data = yaml.safe_load(yaml_string)
+            client_id = int(data['ID'])
+            last_name = data['Фамилия']
+            first_name = data['Имя']
+            middle_name = data['Отчество']
+            address = data['Адрес']
+            phone = data['Телефон']
+            self._validate_and_set(client_id, last_name, first_name, middle_name, address, phone)
+        except (yaml.YAMLError, KeyError, ValueError) as e:
+            raise ValueError(f"Ошибка при разборе yaml: {e}")
+
     def _from_client(self, client):
         self._client_id = client._client_id
         self._last_name = client._last_name
@@ -80,6 +94,74 @@ class Client:
 class ClientShort(Client):
     def __str__(self):
         return f"ClientShort(ID={self._client_id}, Фамилия={self._last_name}, Телефон={self._phone})"
+
+class Client_rep_yaml:
+    def __init__(self, filepath="clients.yaml"):
+        self.filepath = filepath
+        self.clients = []
+        self.next_id = 1
+        if os.path.exists(self.filepath):
+            self.load_from_yaml()
+
+    def load_from_yaml(self):
+        try:
+            with open(self.filepath, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                if data:
+                    for client_data in data:
+                        self.clients.append(Client(*client_data.values()))
+                    self.next_id = max(c._client_id for c in self.clients) + 1 if self.clients else 1
+        except (FileNotFoundError, yaml.YAMLError) as e:
+            print(f"Ошибка при загрузке из YAML: {e}")
+
+    def save_to_yaml(self):
+        try:
+            data = [vars(c) for c in self.clients]
+            with open(self.filepath, "w", encoding="utf-8") as f:
+                yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        except (FileNotFoundError, yaml.YAMLError) as e:
+            print(f"Ошибка при сохранении в YAML: {e}")
+
+    def get_client_by_id(self, client_id):
+        for client in self.clients:
+            if client._client_id == client_id:
+                return client
+        return None
+
+    def get_k_n_short_list(self, k, n):
+        return [ClientShort(c) for c in self.clients[(k-1)*n:(k-1)*n+n]]
+
+    def sort_by_field(self, field):
+        try:
+            self.clients.sort(key=lambda x: getattr(x, f"_{field}"))
+        except AttributeError:
+            print(f"Поле '{field}' не найдено.")
+
+    def add_client(self, last_name, first_name, middle_name, address, phone):
+        new_client = Client(self.next_id, last_name, first_name, middle_name, address, phone)
+        self.clients.append(new_client)
+        self.next_id += 1
+        self.save_to_yaml()
+        return new_client
+
+    def update_client(self, client_id, last_name, first_name, middle_name, address, phone):
+        client = self.get_client_by_id(client_id)
+        if client:
+            client._last_name = last_name
+            client._first_name = first_name
+            client._middle_name = middle_name
+            client._address = address
+            client._phone = phone
+            self.save_to_yaml()
+            return True
+        return False
+
+    def delete_client(self, client_id):
+        self.clients = [c for c in self.clients if c._client_id != client_id]
+        self.save_to_yaml()
+
+    def get_count(self):
+        return len(self.clients)
 
 
 class Client_rep_json:
@@ -151,7 +233,7 @@ class Client_rep_json:
 
 
 def main():
-    client_rep = Client_rep_json()
+    client_rep = Client_rep_yaml()
     while True:
         print("\nМеню:")
         print("1. Вывести всех клиентов")
@@ -194,7 +276,7 @@ def main():
                     client._middle_name = input(f"Новое отчество ({client._middle_name}): ") or client._middle_name
                     client._address = input(f"Новый адресс ({client._address}): ") or client._address
                     client._phone = input(f"Новый телефон ({client._phone}): ") or client._phone
-                    client_rep.save_to_json()
+                    client_rep.save_to_yaml()
                     print("Данные клиента изменены")
                 else:
                     print("Клиент не найден")
