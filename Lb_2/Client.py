@@ -215,9 +215,15 @@ class Client:
         return ClientShort(self)
 
 
-class ClientShort(Client):
+class ClientShort:
+    def __init__(self, client):
+        if not isinstance(client, Client):
+            raise ValueError("Параметр должен быть экземпляром класса Client.")
+        self._client = client
+
     def __str__(self):
-        return f"ClientShort(ID={self._client_id}, Фамилия={self._last_name}, Телефон={self._phone})"
+        return (f"ClientShort(ID={self._client._client_id}, "
+                f"Фамилия={self._client._last_name}, Телефон={self._client._phone})")
 
 
 class Client_rep:
@@ -235,7 +241,7 @@ class Client_rep:
         return None
 
     def get_k_n_short_list(self, k, n):
-        return [ClientShort(c) for c in self.clients[(k-1)*n:(k-1)*n+n]]
+        return [str(ClientShort(c)) for c in self.clients[(k - 1) * n:(k - 1) * n + n]]
 
     def sort_by_field(self, field):
         try:
