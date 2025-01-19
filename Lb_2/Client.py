@@ -1,5 +1,3 @@
-from dataclasses import field
-
 import yaml
 import json
 import psycopg2
@@ -54,7 +52,7 @@ class DatabaseConnector:
 
 
 class ClientDB:
-    def __init__(self, host, user, password, database, port=5432):
+    def __init__(self, db_connector):
         self.db_connector = db_connector
 
     def initialize_db(self):
@@ -138,16 +136,8 @@ class Client:
         if expected_type == str and not field_value.strip():
             raise ValueError(f"{field_name} не может быть пустым.")
 
-    def __init__(self, *args):
-        if len(args) == 6:
-            client_id, last_name, first_name, middle_name, address, phone = args
-            self._validate_and_set(client_id, last_name, first_name, middle_name, address, phone)
-        elif len(args) == 1 and isinstance(args[0], str):
-            self._from_json(args[0])
-        elif len(args) == 1 and isinstance(args[0], Client):
-            self._from_client(args[0])
-        else:
-            raise ValueError("Неверные аргументы для конструктора.")
+    def __init__(self, client_id, last_name, first_name, middle_name, address, phone):
+        self._validate_and_set(client_id, last_name, first_name, middle_name, address, phone)
 
     def _validate_and_set(self, client_id, last_name, first_name, middle_name, address, phone):
         Client.validate_field("ClientID", client_id, int)
@@ -163,40 +153,6 @@ class Client:
         self._middle_name = middle_name
         self._address = address
         self._phone = phone
-
-    def _from_json(self, json_string):
-        try:
-            data = json.loads(json_string)
-            client_id = int(data['ID'])
-            last_name = data['Фамилия']
-            first_name = data['Имя']
-            middle_name = data['Отчество']
-            address = data['Адрес']
-            phone = data['Телефон']
-            self._validate_and_set(client_id, last_name, first_name, middle_name, address, phone)
-        except (json.JSONDecodeError, KeyError, ValueError) as e:
-            raise ValueError(f"Ошибка при разборе JSON: {e}")
-
-    def _from_yaml(self, yaml_string):
-        try:
-            data = yaml.safe_load(yaml_string)
-            client_id = int(data['ID'])
-            last_name = data['Фамилия']
-            first_name = data['Имя']
-            middle_name = data['Отчество']
-            address = data['Адрес']
-            phone = data['Телефон']
-            self._validate_and_set(client_id, last_name, first_name, middle_name, address, phone)
-        except (yaml.YAMLError, KeyError, ValueError) as e:
-            raise ValueError(f"Ошибка при разборе yaml: {e}")
-
-    def _from_client(self, client):
-        self._client_id = client._client_id
-        self._last_name = client._last_name
-        self._first_name = client._first_name
-        self._middle_name = client._middle_name
-        self._address = client._address
-        self._phone = client._phone
 
     def __str__(self):
         return (f"Client(ID={self._client_id}, Фамилия='{self._last_name}', "
@@ -322,133 +278,96 @@ class Client_rep_json(Client_rep):
         except (FileNotFoundError, json.JSONDecodeError) as e:
             print(f"Ошибка при сохранении в JSON: {e}")
 
+class ClientRepDBAdapter(Client_rep):
+    def __init__(self, db_connector):
+        self.db_rep = ClientDB(db_connector)
+        self.clients = self.db_rep.get_all_client()
+        self.next_id = self.db_rep.get_count() + 1 if self.db_rep.get_count() > 0 else 1
+
+    def add_client(self, last_name, first_name, middle_name, address, phone):
+        client_data = {'Фамилия': last_name, 'Имя': first_name, 'Отчество': middle_name, 'Адрес': address, 'Телофен': phone}
+        new_id = self.db_rep.add_client(client_data)
+        if new_id:
+            self.clients = self.db_rep.get_all_client()
+            self.next_id += 1
+            return True
+        return False
+
+    def delete_client(self, client_id):
+        result = self.db_rep.delete_client(client_id)
+        self.clients = self.db_rep.get_all_client()
+        return result
+
+    def get_client_by_id(self, client_id):
+        client_data = self.db_rep.get_client_by_id(client_id)
+        if client_data:
+            return Client(client_data['client_id'], client_data['last_name'], client_data['first_name'], client_data['middle_name'], client_data['address'], client_data['phone'])
+        return None
+
+    def get_all_clients(self):
+        return [Client(c['client_id'], c['last_name'], c['first_name'], c['middle_name'], c['address'], c['phone']) for c in self.db_rep.get_all_client()]
+
+    def get_k_n_short_list(self, k, n):
+        short_list_data = self.db_rep.get_k_n_short_list(k, n)
+        return [ClientShort(Client(0, c['last_name'], c['first_name'], c['middle_name'], c['address'], c['phone'])) for b in short_list_data]
+
+    def sort_by_field(self, field):
+        clients = self.get_all_clients()
+        try:
+            clients.sort(key=lambda x: getattr(x, f"_{field}"))
+            self.clients = clients
+        except AttributeError:
+            print(f"Поле '{field}' не найдено.")
+
+    def update_client(self, client_id, last_name, first_name, middle_name, address, phone):
+        client = self.get_client_by_id(client_id)
+        if client:
+            client._last_name = last_name
+            client._first_name = first_name
+            client._middle_name = middle_name
+            client._address = address
+            client._phone = phone
+            self.db_rep.update_client(client_id, {'Фамилия': last_name, 'Имя': first_name, 'Отчество': middle_name, 'Адрес': address, 'Телофен': phone})
+            self.clients = self.db_rep.get_all_client()
+            return True
+        return False
+
+    def get_count(self):
+        return self.db_rep.get_count()
+
+    def save_data(self):
+        pass
+
+
+def main():
+    try:
+        if storage_type == "db":
+            host = 'localhost'
+            user = 'postgres'
+            password = 'dimal'
+            database = 'LiksDB'
+
+            db_connector = DatabaseConnector.get_instance(host, user, password, database)
+            if db_connector.connection is None:
+                print("Ошибка подключения к базе данных.")
+                return
+            client_rep = ClientRepDBAdapter(db_connector)
+            client_rep.db_rep.initialize_db()
+        elif storage_type == "json":
+            client_rep = Client_rep_json()
+        elif storage_type == "yaml":
+            client_rep = Client_rep_yaml()
+        else:
+            raise ValueError("Неподдерживаемый тип хранилища данных")
+        run_operations(client_rep)
+        if storage_type == "db" and db_connector:
+            db_connector.close()
+    except ValueError as e:
+        print(f"Ошибка: {e}")
+
 
 def run_operations(client_rep):
     clients = client_rep.get_all_client()
-    while True:
-        print("\nМеню:")
-        print("1. Вывести всех клиентов")
-        print("2. Добавить клиента")
-        print("3. Удалить клиента")
-        print("4. Изменить данные клиента")
-        print("5. Найти клиента по ID")
-        print("6. Получить k-n короткий список")
-        print("7. Отсортировать клиентов")
-        print("8. Выход")
-
-        choice = input("Выберите действие: ")
-
-        try:
-            if choice == "1":
-                print("\nВсе клиенты:")
-                for client in clients:
-                    print(client)
-            elif choice == "2":
-                client_data = {
-                    'LastName': input("Введите фамилию: "),
-                    'FirstName': input("Введите имя: "),
-                    'MiddleName': input("Введите отчество: "),
-                    'Address': input("Введите адрес: "),
-                    'Phone': input("Введите телефон: ")
-                }
-                if client_rep.add_client(client_data):
-                    clients = client_rep.get_all_client()
-                    print("Клиент добавлен")
-                else:
-                    print("Ошибка при добавлении клиента")
-            elif choice == "3":
-                client_id = int(input("Введите ID клиента для удаления: "))
-                if client_rep.delete_client(client_id):
-                    clients = client_rep.get_all_client()
-                    print("Клиент удален")
-                else:
-                    print("Клиент не найден или ошибка при удалении")
-            elif choice == "4":
-                client_id = int(input("Введите ID клиента для изменения: "))
-                client = client_rep.get_client_by_id(client_id)
-                if client:
-                    updated_client = {
-                        'LastName': input(f"Новая фамилия ({client['LastName']}): ") or client['LastName'],
-                        'FirstName': input(f"Новое имя ({client['FirstName']}): ") or client['FirstName'],
-                        'MiddleName': input(f"Новое отчество ({client['MiddleName']}): ") or client['MiddleName'],
-                        'Address': input(f"Новый адрес ({client['Address']}): ") or client['Address'],
-                        'Phone': input(f"Новый телефон ({client['Phone']}): ") or client['Phone']
-                    }
-                    client_rep.update_client(client_id, updated_client)
-                    clients = client_rep.get_all_client()
-                    print("Данные клиента изменены")
-                else:
-                    print("Клиент не найден")
-            elif choice == "5":
-                client_id = int(input("Введите ID клиента: "))
-                client = client_rep.get_client_by_id(client_id)
-                if client:
-                    print("\nНайденный клиент:", client)
-                else:
-                    print("Клиент не найден.")
-            elif choice == "6":
-                k = int(input("Введите номер страницы (k): "))
-                n = int(input("Введите количество клиентов на странице (n): "))
-                short_list = client_rep.get_k_n_short_list(k, n)
-                print("\nКраткая информация о клиентах:", short_list)
-            elif choice == "7":
-                count = client_rep.get_count()
-                print(f"Количество клиентов: {count}")
-            elif choice == "8":
-                print("Выход")
-                break
-            else:
-                print("Неверный выбор")
-        except ValueError:
-            print("Неверный формат ввода. Пожалуйста, введите число.")
-        except Exception as e:
-            print(f"Произошла ошибка: {e}")
-
-
-def main():
-    host = 'localhost'
-    user = 'postgres'
-    password = 'dimal'
-    database = 'LiksDB'
-
-    client_rep = None
-    try:
-        client_rep = ClientDB(host, user, password, database)
-        client_rep.initialize_db()
-        run_operations(client_rep)
-    except psycopg2.Error as e:
-        print(f"Ошибка подключения к базе данных: {e}")
-    except Exception as e:
-        print(f"Произошла непредвиденная ошибка: {e}")
-    finally:
-        if client_rep:
-            client_rep.close()
-            print("Соединение с базой данных закрыто.")
-
-
-"""
-def main():
-    while True:
-        print("\nМеню:")
-        print("1. Выбрать JSON")
-        print("2. Выбрать YAML")
-        print("3. Выход")
-
-        choice = input("Выберите тип файла: ")
-
-        if choice == "1":
-            client_rep = Client_rep_json()
-            run_operations(client_rep)
-        elif choice == "2":
-            client_rep = Client_rep_yaml()
-            run_operations(client_rep)
-        elif choice == "3":
-            print("Выход")
-            break
-        else:
-            print("Неверный выбор.")
-
-def run_operations(client_rep):
     while True:
         print("\nМеню:")
         print("1. Вывести всех клиентов")
@@ -524,7 +443,7 @@ def run_operations(client_rep):
             print("Ошибка ввода данных. Пожалуйста, введите корректные значения")
         except Exception as e:
             print(f"Произошла ошибка: {e}")
-"""
+
 
 if __name__ == "__main__":
     main()
