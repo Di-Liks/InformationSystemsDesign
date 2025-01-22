@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 YaBrowser/24.12.0.0 Safari/537.36" version="25.0.3">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 YaBrowser/24.12.0.0 Safari/537.36" version="26.0.4">
   <diagram name="Страница — 1" id="Qg7TNX0esdktX7MQRUZs">
-    <mxGraphModel dx="819" dy="474" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="900" math="0" shadow="0">
+    <mxGraphModel dx="1434" dy="829" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="900" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -70,7 +70,7 @@
         <mxCell id="-mL4NThojfcAtNZUIqRa-9" value="+ __init__()&lt;div&gt;+ load_data()&lt;/div&gt;&lt;div&gt;+ save_data()&lt;/div&gt;" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" parent="-mL4NThojfcAtNZUIqRa-7" vertex="1">
           <mxGeometry y="34" width="110" height="56" as="geometry" />
         </mxCell>
-        <mxCell id="-mL4NThojfcAtNZUIqRa-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=diamondThin;endFill=1;strokeWidth=1;arcSize=20;" parent="1" source="-mL4NThojfcAtNZUIqRa-14" target="b8q81cn3WwMqUTTSJ5ZS-9" edge="1">
+        <mxCell id="-mL4NThojfcAtNZUIqRa-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=diamondThin;endFill=0;strokeWidth=1;arcSize=20;" parent="1" source="-mL4NThojfcAtNZUIqRa-14" target="b8q81cn3WwMqUTTSJ5ZS-9" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="-mL4NThojfcAtNZUIqRa-14" value="ClientShort" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
