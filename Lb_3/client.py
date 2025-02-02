@@ -1,4 +1,3 @@
-# client.py
 class Client:
     def __init__(self, LastName, FirstName, MiddleName, Address, Phone):
         self.LastName = LastName
@@ -8,7 +7,6 @@ class Client:
         self.Phone = Phone
 
     def to_dict(self):
-        """Convert the Client object to a dictionary."""
         return {
             'LastName': self.LastName,
             'FirstName': self.FirstName,
@@ -19,7 +17,6 @@ class Client:
 
     @classmethod
     def from_dict(cls, data):
-        """Create a Client object from a dictionary."""
         return cls(
             LastName=data['LastName'],
             FirstName=data['FirstName'],
