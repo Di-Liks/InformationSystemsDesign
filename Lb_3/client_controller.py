@@ -16,7 +16,7 @@ class ClientController:
         if dialog.exec_():
             client = dialog.get_client()
             if not self.repository.is_phone_unique(client.Phone):
-                QMessageBox.warning(self.view, 'Неверный номер', 'Данный номер телефона уже используется')
+                QMessageBox.warning(self.view, 'Номер телефона уже существует', 'Номер должен быть уникальным')
             else:
                 self.repository.add_client(client)
 
