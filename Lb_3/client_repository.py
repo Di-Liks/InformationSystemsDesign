@@ -45,6 +45,14 @@ class ClientRepository(QObject):
         self.clients_updated.emit(self.clients)
         return True
 
+    def delete_client(self, index):
+        if index < 0 or index >= len(self.clients):
+            return False
+        self.clients.pop(index)
+        self.save_clients()
+        self.clients_updated.emit(self.clients)
+        return True
+
     def is_phone_unique(self, phone):
         return all(client.Phone != phone for client in self.clients)
 

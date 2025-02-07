@@ -60,9 +60,16 @@ class AllClientDetailsDialog(QDialog):
         self.edit_button = QPushButton('Изменить клиента', self)
         self.edit_button.clicked.connect(self.edit_selected_client)
 
+        self.delete_button = QPushButton('Удалить клиента', self)
+        self.delete_button.clicked.connect(self.delete_selected_client)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.edit_button)
+        button_layout.addWidget(self.delete_button)
+
         layout = QVBoxLayout()
         layout.addWidget(self.table)
-        layout.addWidget(self.edit_button)
+        layout.addLayout(button_layout)
 
         self.setLayout(layout)
 
@@ -81,6 +88,14 @@ class AllClientDetailsDialog(QDialog):
             self.controller.show_edit_client_dialog(selected_row)
         else:
             QMessageBox.warning(self, 'Клиент не выбран', 'Выберите клиента для изменения')
+
+    def delete_selected_client(self):
+        selected_row = self.table.currentRow()
+        if selected_row >= 0:
+            self.controller.delete_client(selected_row)
+            self.update_table(self.controller.repository.get_clients())
+        else:
+            QMessageBox.warning(self, 'Клиент не выбран', 'Выберите клиента для удаления')
 
 class ClientFormDialog(QDialog):
     def __init__(self, parent=None):

@@ -37,6 +37,12 @@ class ClientController:
                     else:
                         self.repository.update_client(index, updated_client)
 
+    def delete_client(self, index):
+        if 0 <= index < len(self.repository.get_clients()):
+            self.repository.delete_client(index)
+        else:
+            QMessageBox.warning(self.view, 'Клиент не выбран', 'Выберите клиента для удаления')
+
     def show_all_client_details(self):
         clients = self.repository.get_clients()
         dialog = AllClientDetailsDialog(clients, self)
