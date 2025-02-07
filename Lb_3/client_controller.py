@@ -43,6 +43,9 @@ class ClientController:
         else:
             QMessageBox.warning(self.view, 'Клиент не выбран', 'Выберите клиента для удаления')
 
+    def sort_clients(self, field):
+        self.repository.sort_by_field(field)
+
     def show_all_client_details(self):
         clients = self.repository.get_clients()
         dialog = AllClientDetailsDialog(clients, self)

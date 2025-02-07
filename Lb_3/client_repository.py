@@ -56,5 +56,12 @@ class ClientRepository(QObject):
     def is_phone_unique(self, phone):
         return all(client.Phone != phone for client in self.clients)
 
+    def sort_by_field(self, field):
+        try:
+            self.clients.sort(key=lambda x: getattr(x, field))
+            self.clients_updated.emit(self.clients)
+        except AttributeError:
+            print(f"Поле '{field}' не найдено.")
+
     def get_clients(self):
         return self.clients

@@ -47,6 +47,8 @@ class AllClientDetailsDialog(QDialog):
         self.controller = controller
         self.initUI()
 
+        self.controller.repository.clients_updated.connect(self.update_table)
+
     def initUI(self):
         self.setWindowTitle('Детальная информация')
         self.setGeometry(100, 100, 600, 400)
@@ -63,9 +65,17 @@ class AllClientDetailsDialog(QDialog):
         self.delete_button = QPushButton('Удалить клиента', self)
         self.delete_button.clicked.connect(self.delete_selected_client)
 
+        self.sort_last_name_button = QPushButton('Сортировать по фамилии', self)
+        self.sort_last_name_button.clicked.connect(lambda: self.controller.sort_clients('LastName'))
+
+        self.sort_phone_button = QPushButton('Сортировать по номеру', self)
+        self.sort_phone_button.clicked.connect(lambda: self.controller.sort_clients('Phone'))
+
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.edit_button)
         button_layout.addWidget(self.delete_button)
+        button_layout.addWidget(self.sort_last_name_button)
+        button_layout.addWidget(self.sort_phone_button)
 
         layout = QVBoxLayout()
         layout.addWidget(self.table)
@@ -73,7 +83,9 @@ class AllClientDetailsDialog(QDialog):
 
         self.setLayout(layout)
 
-    def update_table(self, clients):
+    def update_table(self, clients=None):
+        if clients is None:
+            clients = self.controller.repository.get_clients()
         self.table.setRowCount(len(clients))
         for i, client in enumerate(clients):
             self.table.setItem(i, 0, QTableWidgetItem(client.LastName))
@@ -93,7 +105,6 @@ class AllClientDetailsDialog(QDialog):
         selected_row = self.table.currentRow()
         if selected_row >= 0:
             self.controller.delete_client(selected_row)
-            self.update_table(self.controller.repository.get_clients())
         else:
             QMessageBox.warning(self, 'Клиент не выбран', 'Выберите клиента для удаления')
 
